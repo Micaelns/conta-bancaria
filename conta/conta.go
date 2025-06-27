@@ -5,92 +5,58 @@ import (
 	"time"
 )
 
-type TipoOperacao string
-
-const (
-	Deposito TipoOperacao = "Depósito"
-	Saque    TipoOperacao = "Saque"
-)
-
-type Operacao struct {
-	Tipo      TipoOperacao
-	Valor     float64
-	Timestamp time.Time
-	Erro      string // se falhar, registra o motivo
-}
-
-// Conta representa uma conta bancária.
 type Conta struct {
-	Cliente  string
-	Numero   string
-	Agencia  string
-	ChavePix string
-	Saldo    float64
-	Operacoes  []Operacao
+	cliente  string
+	numero   string
+	agencia  string
+	chavePix string 
+	saldo 	 float64 // agora é privado (visível apenas no pacote `conta`)
+	operacoes  []Operacao
 }
+
+func NovaConta(cliente, numero, agencia, chavePix string) *Conta {
+	return &Conta{
+		cliente:  cliente,
+		numero:   numero,
+		agencia:  agencia,
+		chavePix: chavePix,
+	}
+}
+
+func (c *Conta) GetCliente() string  { return c.cliente }
+func (c *Conta) GetNumero() string   { return c.numero }
+func (c *Conta) GetAgencia() string  { return c.agencia }
+func (c *Conta) GetChavePix() string { return c.chavePix }
+func (c *Conta) GetSaldo() float64   { return c.saldo }
+
+
+func (c *Conta) Depositar(valor float64) {
+	c.saldo += valor
+	c.registrarOperacao(Deposito, valor, nil)
+}
+
+func (c *Conta) Sacar(valor float64) error {
+	if valor > c.saldo {
+		err := fmt.Errorf("- R$%.2f (saldo insuficiente)",valor)
+		c.registrarOperacao(Saque, valor, err)
+		return err
+	}
+	c.saldo -= valor
+	c.registrarOperacao(Saque, valor, nil)
+	return nil
+}
+
+// ---------- MÉTODO INTERNO (privado) ----------
+//nome do método iniciado por letra minúscula método privado
 
 func (c *Conta) registrarOperacao(tipo TipoOperacao, valor float64, err error) {
 	op := Operacao{
 		Tipo:      tipo,
 		Valor:     valor,
-		Timestamp: time.Now(),
+		DataHora: time.Now(),
 	}
 	if err != nil {
 		op.Erro = err.Error()
 	}
-	c.Operacoes = append(c.Operacoes, op)
-}
-
-// Depositar adiciona valor ao saldo da conta.
-func (c *Conta) Depositar(valor float64) {
-	c.Saldo += valor
-	fmt.Printf("[Conta %s] + R$%.2f\n", c.Numero, valor)
-	c.registrarOperacao(Deposito, valor, nil)
-}
-
-// Sacar tenta subtrair valor do saldo.
-func (c *Conta) Sacar(valor float64) error {
-	if valor > c.Saldo {
-		err := fmt.Errorf("- R$%.2f (saldo insuficiente)",valor)
-		c.registrarOperacao(Saque, valor, err)
-		return err
-	}
-	c.Saldo -= valor
-	fmt.Printf("[Conta %s] - R$%.2f\n", c.Numero,  valor)
-	c.registrarOperacao(Saque, valor, nil)
-	return nil
-}
-
-// Imprime saldo.
-func (c *Conta) ExtratoSimples() {
-	fmt.Printf("\n--- Saldo ---\n")
-	fmt.Printf("Cliente: %s\n", c.Cliente)
-	fmt.Printf("Agência: %s | Conta: %s\n", c.Agencia, c.Numero)
-	fmt.Printf("Saldo atual: R$%.2f\n", c.Saldo)
-	fmt.Println("---------------")
-	fmt.Println()
-}
-
-// Extrato imprime os dados da conta e saldo.
-func (c *Conta) ExtratoCompleto() {
-	fmt.Println("\n--- Extrato ---")
-	fmt.Printf("Cliente: %s\n", c.Cliente)
-	fmt.Printf("Agência: %s | Conta: %s\n", c.Agencia, c.Numero)
-	for _, op := range c.Operacoes {
-		status := ""
-		if op.Erro != "" {
-			status = "— FALHA: " + op.Erro
-		}
-		sinal := "-"
-		if op.Tipo == Deposito {
-			sinal = "+"
-		}
-		fmt.Printf("[%s] %s de R$%.2f %s\n",
-			op.Timestamp.Format("02/01/2006 15:04:05"),
-			sinal,
-			op.Valor,
-			status,
-		)
-	}
-	fmt.Printf("Saldo atual: R$%.2f\n", c.Saldo)
+	c.operacoes = append(c.operacoes, op)
 }

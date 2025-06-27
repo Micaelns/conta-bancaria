@@ -2,41 +2,44 @@ package main
 
 import (
 	"conta-bancaria/conta"
+	"encoding/json"
 	"fmt"
 )
 
 func main() {
-	// Criar estrutura para armazenar múltiplas contas (mapa com chave = número da conta)
-	contas := make(map[string]*conta.Conta)
+	repo := conta.NovoRepositorio()
 
-	// Criar duas contas
-	contas["123"] = &conta.Conta{
-		Cliente:  "João Silva",
-		Numero:   "123",
-		Agencia:  "0001",
-		ChavePix: "joao@email.com",
+	service := conta.NovoContaService(repo)
+
+	// Criar contas
+	service.CriarConta("João Silva", "123", "0001", "joao@email.com")
+	service.CriarConta("Maria Souza", "456", "0002", "maria@celular.com")
+
+	// Operações conta 123
+	service.Depositar("123", 400)
+	service.Depositar("123", 400)
+	realizarSaque(service, "123", 300) 
+	realizarSaque(service, "123", 900)
+	mostrarJSON(service,"123") 
+
+	// Operações conta 456
+	service.Depositar("456", 1000)
+	realizarSaque(service, "456", 200)
+	mostrarJSON(service,"456") 
+
+}
+
+func realizarSaque(service *conta.ContaService, numConta string, valor float64) {
+	if err := service.Sacar(numConta, valor); err != nil {
+	 	fmt.Printf("Erro no saque [Conta: %s]: %v \n", numConta, err)
+	} 
+}
+
+func mostrarJSON(service *conta.ContaService, numConta string) {
+	if c, err := service.ConsultarConta(numConta); err == nil {
+		fmt.Printf("[Conta: %s] \n",numConta)
+		response := c.ToResponse()
+		jsonData, _ := json.MarshalIndent(response, "", "  ")
+		fmt.Println(string(jsonData))
 	}
-
-	contas["456"] = &conta.Conta{
-		Cliente:  "Maria Souza",
-		Numero:   "456",
-		Agencia:  "0002",
-		ChavePix: "maria@celular.com",
-	}
-
-	// Operações na conta do João (123)
-	contas["123"].ExtratoSimples()
-	contas["123"].Depositar(400)
-	contas["123"].Depositar(400)
-	contas["123"].Sacar(300)
-	if err := contas["123"].Sacar(900); err != nil {
-		fmt.Println("Erro no saque:", err)
-	}
-	contas["123"].ExtratoCompleto()
-
-	// Operações na conta da Maria (456)
-	contas["456"].ExtratoSimples()
-	contas["456"].Depositar(1000)
-	contas["456"].Sacar(200)
-	contas["456"].ExtratoCompleto()
 }
