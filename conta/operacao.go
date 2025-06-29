@@ -6,6 +6,7 @@ type TipoOperacao string
 
 const (
 	Deposito TipoOperacao = "Depósito"
+	Pix    TipoOperacao = "Pix"
 	Saque    TipoOperacao = "Saque"
 )
 

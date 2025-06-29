@@ -35,9 +35,14 @@ func (c *Conta) Depositar(valor float64) {
 	c.registrarOperacao(Deposito, valor, nil)
 }
 
+func (c *Conta) FazerPix(valor float64) {
+	c.saldo += valor
+	c.registrarOperacao(Pix, valor, nil)
+}
+
 func (c *Conta) Sacar(valor float64) error {
 	if valor > c.saldo {
-		err := fmt.Errorf("- R$%.2f (saldo insuficiente)",valor)
+		err := fmt.Errorf("R$%.2f (saldo insuficiente)",c.saldo)
 		c.registrarOperacao(Saque, valor, err)
 		return err
 	}

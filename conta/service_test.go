@@ -8,9 +8,13 @@ func TestContaService_CriarConta(t *testing.T) {
 	repo := NovoRepositorio()
 	service := NovoContaService(repo)
 
-	conta := service.CriarConta("João Silva", "123", "0001", "joao@email.com")
+	conta, err := service.CriarConta("João Silva", "123", "0001", "joao@email.com")
 	if conta == nil {
 		t.Fatal("Conta não pode ser nula")
+	}
+
+	if err != nil {
+		t.Errorf("não esperava erro : %s", err)
 	}
 
 	if conta.GetCliente() != "João Silva" {
@@ -26,6 +30,22 @@ func TestContaService_Depositar(t *testing.T) {
 	err := service.Depositar("456", 1000)
 	if err != nil {
 		t.Errorf("não esperava erro no depósito: %v", err)
+	}
+
+	conta, _ := service.ConsultarConta("456")
+	if conta.GetSaldo() != 1000 {
+		t.Errorf("saldo esperado: 1000, obtido: %.2f", conta.GetSaldo())
+	}
+}
+
+func TestContaService_FazerPix(t *testing.T) {
+	repo := NovoRepositorio()
+	service := NovoContaService(repo)
+
+	service.CriarConta("Maria", "456", "0002", "maria@pix.com")
+	err := service.FazerPix("maria@pix.com", 1000)
+	if err != nil {
+		t.Errorf("não esperava erro no pix: %v", err)
 	}
 
 	conta, _ := service.ConsultarConta("456")

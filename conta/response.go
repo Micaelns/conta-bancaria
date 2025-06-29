@@ -1,10 +1,12 @@
 package conta
 
+import "fmt"
+
 type OperacaoResponse struct {
-	Tipo     string  `json:"tipo"`
-	Valor    float64 `json:"valor"`
-	DataHora string  `json:"data_hora"`
-	Status   string  `json:"status"`
+	Tipo     string `json:"tipo"`
+	Valor    string `json:"valor"`
+	DataHora string `json:"data_hora"`
+	Status   string `json:"status"`
 }
 
 type ContaResponse struct {
@@ -12,8 +14,25 @@ type ContaResponse struct {
 	Numero    string             `json:"numero"`
 	Agencia   string             `json:"agencia"`
 	ChavePix  string             `json:"chave_pix"`
-	Saldo     float64            `json:"saldo"`
+	Saldo     string             `json:"saldo"`
 	Operacoes []OperacaoResponse `json:"operacoes"`
+}
+type ContaSaldoResponse struct {
+	Cliente   string             `json:"cliente"`
+	Numero    string             `json:"numero"`
+	Agencia   string             `json:"agencia"`
+	ChavePix  string             `json:"chave_pix"`
+	Saldo     string             `json:"saldo"`
+}
+
+func (c *Conta) ToSaldoResponse() ContaSaldoResponse {
+	return ContaSaldoResponse{
+		Cliente:   c.GetCliente(),
+		Numero:    c.GetNumero(),
+		Agencia:   c.GetAgencia(),
+		ChavePix:  c.GetChavePix(),
+		Saldo:     fmt.Sprintf("R$ %.2f", c.GetSaldo()),
+	}
 }
 
 func (c *Conta) ToResponse() ContaResponse {
@@ -28,7 +47,7 @@ func (c *Conta) ToResponse() ContaResponse {
 		operacoes = append(operacoes, OperacaoResponse{
 			DataHora: op.DataHora.Format("02/01/2006 15:04:05"),
 			Tipo:     string(op.Tipo),
-			Valor:    op.Valor,
+			Valor:    fmt.Sprintf("R$ %.2f", op.Valor),
 			Status:   status,
 		})
 	}
@@ -38,7 +57,7 @@ func (c *Conta) ToResponse() ContaResponse {
 		Numero:    c.GetNumero(),
 		Agencia:   c.GetAgencia(),
 		ChavePix:  c.GetChavePix(),
-		Saldo:     c.GetSaldo(),
+		Saldo:     fmt.Sprintf("R$ %.2f", c.GetSaldo()),
 		Operacoes: operacoes,
 	}
 }
