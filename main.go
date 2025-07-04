@@ -3,21 +3,23 @@ package main
 import (
 	"conta-bancaria/api/controllers"
 	"conta-bancaria/api/routes"
-	"conta-bancaria/conta"
+	"conta-bancaria/infra"
+	"conta-bancaria/repositories"
+	"conta-bancaria/services"
+	"log"
 )
 
 func main() {
-	repo := conta.NovoRepositorio()
-	service := conta.NovoContaService(repo)
+	
+	if err := infra.ConectarMongo(); err != nil {
+		log.Fatal("Erro ao conectar ao MongoDB:", err)
+	} 
+
+	contaRepo := repositories.NovaContaRepository()
+	operacaoRepo := repositories.NovaOperacaoRepository()
+	service := services.NovoContaService(contaRepo, operacaoRepo)
+	 
 	controller := controllers.NovoContaController(service)
-
-	// Criar contas iniciais para teste
-	conta1, _ := service.CriarConta("João Silva", "123", "0001", "joao@email.com")
-	conta1.Depositar(400)
-	conta1.Depositar(400)
-	conta1.Sacar(300)
-	conta1.Sacar(900)
-
 	r := routes.SetupRouter(controller)
-	r.Run(":8080")
+	r.Run(":8080") 
 }

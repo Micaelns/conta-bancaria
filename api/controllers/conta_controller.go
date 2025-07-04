@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"conta-bancaria/conta"
+	"conta-bancaria/services"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -19,10 +19,10 @@ type OperacaoRequest struct {
 }
 
 type ContaController struct {
-	Service *conta.ContaService
+	Service *services.ContaService
 }
 
-func NovoContaController(service *conta.ContaService) *ContaController {
+func NovoContaController(service *services.ContaService) *ContaController {
 	return &ContaController{Service: service}
 }
 
@@ -38,7 +38,7 @@ func (cc *ContaController) CriarConta(c *gin.Context) {
 		c.JSON(http.StatusBadGateway, gin.H{"erro": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, conta.ToSaldoResponse())
+	c.JSON(http.StatusCreated, conta)
 }
 
 func (cc *ContaController) Depositar(c *gin.Context) {
@@ -56,7 +56,7 @@ func (cc *ContaController) Depositar(c *gin.Context) {
 	}
 
 	conta, _ := cc.Service.ConsultarConta(numero)
-	c.JSON(http.StatusOK, conta.ToSaldoResponse())
+	c.JSON(http.StatusOK, conta)
 }
 
 func (cc *ContaController) FazerPix(c *gin.Context) {
@@ -74,7 +74,7 @@ func (cc *ContaController) FazerPix(c *gin.Context) {
 	}
 
 	conta, _ := cc.Service.ConsultarContaPorPix(chavePix)
-	c.JSON(http.StatusOK, conta.ToSaldoResponse())
+	c.JSON(http.StatusOK, conta)
 }
 
 func (cc *ContaController) Sacar(c *gin.Context) {
@@ -92,17 +92,16 @@ func (cc *ContaController) Sacar(c *gin.Context) {
 	}
 
 	conta, _ := cc.Service.ConsultarConta(numero)
-	c.JSON(http.StatusOK, conta.ToSaldoResponse())
+	c.JSON(http.StatusOK, conta)
 }
 
 func (cc *ContaController) Extrato(c *gin.Context) {
 	numero := c.Param("numero")
-	conta, err := cc.Service.ConsultarConta(numero)
+	operacoes, err := cc.Service.Extrato(numero)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"erro": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"erro": err.Error()})
 		return
 	}
 
-	response := conta.ToResponse()
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, operacoes)
 }
