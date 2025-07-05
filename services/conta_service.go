@@ -4,6 +4,9 @@ import (
 	"conta-bancaria/models"
 	"conta-bancaria/repositories"
 	"errors"
+	"fmt"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 type ContaService struct {
@@ -47,12 +50,12 @@ func (s *ContaService) Depositar(numeroConta string, valor float64) error {
 	if err != nil {
 		return err
 	}
-	operacao, err2 := c.Depositar(valor)
-	if err2 != nil {
-		return err
+	operacao := c.Depositar(valor)
+	s.operacaoRepo.Registrar(operacao)
+	if operacao.Erro != "" {
+		return fmt.Errorf(operacao.Erro)
 	}
 	s.contaRepo.AtualizarSaldo(numeroConta, c.Saldo)
-	s.operacaoRepo.Registrar(operacao)
 	return nil
 }
 
@@ -61,12 +64,12 @@ func (s *ContaService) FazerPix(chavePix string, valor float64) error {
 	if err != nil {
 		return err
 	}
-	operacao, err2 := c.FazerPix(valor)
-	if err2 != nil {
-		return err
+	operacao := c.FazerPix(valor)
+	s.operacaoRepo.Registrar(operacao)
+	if operacao.Erro != "" {
+		return fmt.Errorf(operacao.Erro)
 	}
 	s.contaRepo.AtualizarSaldo(c.Numero, c.Saldo)
-	s.operacaoRepo.Registrar(operacao)
 	return nil
 }
 
@@ -75,12 +78,12 @@ func (s *ContaService) Sacar(numeroConta string, valor float64) error {
 	if err != nil {
 		return err
 	}
-	operacao, err2 := c.Sacar(valor)
-	if err2 != nil {
-		return err2
+	operacao := c.Sacar(valor)
+	s.operacaoRepo.Registrar(operacao)
+	if operacao.Erro != "" {
+		return fmt.Errorf(operacao.Erro)
 	}
 	s.contaRepo.AtualizarSaldo(c.Numero, c.Saldo)
-	s.operacaoRepo.Registrar(operacao)
 	return nil
 }
 
@@ -92,6 +95,20 @@ func (s *ContaService) ConsultarContaPorPix(chavePix string) (*models.Conta, err
 	return s.contaRepo.BuscarContaPix(chavePix)
 }
 
-func (s *ContaService) Extrato(numeroConta string) ([]models.Operacao, error) {
-	return s.operacaoRepo.ListarPorConta(numeroConta)
+func (s *ContaService) ExtratoSimples(numeroConta string) ([]models.Operacao, error) {
+	
+	filter := bson.M{
+		"numeroConta": numeroConta,
+		"$or": []bson.M{
+			{"erro": bson.M{"$eq": ""}},
+			{"erro": bson.M{"$exists": false}},
+		},
+	}
+
+	return s.operacaoRepo.ListaFiltrada(filter)
+}
+
+func (s *ContaService) ExtratoCompleto(numeroConta string) ([]models.Operacao, error) {
+	filter := bson.M{ "numeroConta": numeroConta }
+	return s.operacaoRepo.ListaFiltrada(filter)
 }

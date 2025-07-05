@@ -8,6 +8,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type OperacaoRepository struct {
@@ -28,12 +29,13 @@ func (r *OperacaoRepository) Registrar(op *models.Operacao) error {
 	return err
 }
 
-func (r *OperacaoRepository) ListarPorConta(numeroConta string) ([]models.Operacao, error) {
+func (r *OperacaoRepository) ListaFiltrada(filter bson.M) ([]models.Operacao, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+ 
+	opts := options.Find().SetSort(bson.D{{"timestamp", -1}})
 
-	filter := bson.M{"numeroConta": numeroConta}
-	cursor, err := r.col.Find(ctx, filter)
+	cursor, err := r.col.Find(ctx, filter, opts) 
 	if err != nil {
 		return nil, err
 	}

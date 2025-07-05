@@ -1,7 +1,9 @@
 package controllers
 
 import (
+	"conta-bancaria/models"
 	"conta-bancaria/services"
+	"math"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -95,9 +97,34 @@ func (cc *ContaController) Sacar(c *gin.Context) {
 	c.JSON(http.StatusOK, conta)
 }
 
+func (cc *ContaController) Saldo(c *gin.Context) {
+	numero := c.Param("numero")
+
+	conta, err := cc.Service.ConsultarConta(numero)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"erro": err.Error()})
+		return
+	}
+	conta.Saldo = math.Round(conta.Saldo*100) / 100
+	c.JSON(http.StatusOK, conta)
+}
+
 func (cc *ContaController) Extrato(c *gin.Context) {
 	numero := c.Param("numero")
-	operacoes, err := cc.Service.Extrato(numero)
+	completo := c.DefaultQuery("completo", "false")
+
+	var (
+		operacoes []models.Operacao
+		err       error
+	)
+	
+	if completo == "true" {
+		operacoes, err = cc.Service.ExtratoCompleto(numero)
+	} else {
+		operacoes, err = cc.Service.ExtratoSimples(numero)
+	}
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"erro": err.Error()})
 		return
