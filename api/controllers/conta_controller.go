@@ -1,7 +1,9 @@
 package controllers
 
 import (
-	"conta-bancaria/conta"
+	"conta-bancaria/models"
+	"conta-bancaria/services"
+	"math"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -15,14 +17,14 @@ type NovaContaRequest struct {
 }
 
 type OperacaoRequest struct {
-	Valor float64 `json:"valor" binding:"required,gt=0"`
+	Valor float64 `json:"valor" binding:"required"`
 }
 
 type ContaController struct {
-	Service *conta.ContaService
+	Service *services.ContaService
 }
 
-func NovoContaController(service *conta.ContaService) *ContaController {
+func NovoContaController(service *services.ContaService) *ContaController {
 	return &ContaController{Service: service}
 }
 
@@ -38,7 +40,7 @@ func (cc *ContaController) CriarConta(c *gin.Context) {
 		c.JSON(http.StatusBadGateway, gin.H{"erro": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, conta.ToSaldoResponse())
+	c.JSON(http.StatusCreated, conta)
 }
 
 func (cc *ContaController) Depositar(c *gin.Context) {
@@ -56,7 +58,7 @@ func (cc *ContaController) Depositar(c *gin.Context) {
 	}
 
 	conta, _ := cc.Service.ConsultarConta(numero)
-	c.JSON(http.StatusOK, conta.ToSaldoResponse())
+	c.JSON(http.StatusOK, conta)
 }
 
 func (cc *ContaController) FazerPix(c *gin.Context) {
@@ -74,7 +76,7 @@ func (cc *ContaController) FazerPix(c *gin.Context) {
 	}
 
 	conta, _ := cc.Service.ConsultarContaPorPix(chavePix)
-	c.JSON(http.StatusOK, conta.ToSaldoResponse())
+	c.JSON(http.StatusOK, conta)
 }
 
 func (cc *ContaController) Sacar(c *gin.Context) {
@@ -92,17 +94,41 @@ func (cc *ContaController) Sacar(c *gin.Context) {
 	}
 
 	conta, _ := cc.Service.ConsultarConta(numero)
-	c.JSON(http.StatusOK, conta.ToSaldoResponse())
+	c.JSON(http.StatusOK, conta)
+}
+
+func (cc *ContaController) Saldo(c *gin.Context) {
+	numero := c.Param("numero")
+
+	conta, err := cc.Service.ConsultarConta(numero)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"erro": err.Error()})
+		return
+	}
+	conta.Saldo = math.Round(conta.Saldo*100) / 100
+	c.JSON(http.StatusOK, conta)
 }
 
 func (cc *ContaController) Extrato(c *gin.Context) {
 	numero := c.Param("numero")
-	conta, err := cc.Service.ConsultarConta(numero)
+	completo := c.DefaultQuery("completo", "false")
+
+	var (
+		operacoes []models.Operacao
+		err       error
+	)
+	
+	if completo == "true" {
+		operacoes, err = cc.Service.ExtratoCompleto(numero)
+	} else {
+		operacoes, err = cc.Service.ExtratoSimples(numero)
+	}
+
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"erro": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"erro": err.Error()})
 		return
 	}
 
-	response := conta.ToResponse()
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, operacoes)
 }
