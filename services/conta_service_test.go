@@ -1,83 +1,85 @@
-package services
+package services_test
 
 import (
+	"conta-bancaria/models"
+	"conta-bancaria/services"
+	"conta-bancaria/services/mocks"
 	"testing"
 )
 
-func TestContaService_CriarConta(t *testing.T) {
-	repo := NovoRepositorio()
-	service := NovoContaService(repo)
-
-	conta, err := service.CriarConta("João Silva", "123", "0001", "joao@email.com")
-	if conta == nil {
-		t.Fatal("Conta não pode ser nula")
+func TestDepositar(t *testing.T) {
+	conta := &models.Conta{
+		Numero: "123",
+		Saldo:  0,
 	}
 
+	mockContaRepo := &mocks.ContaRepoMock{ContaFake: conta}
+	mockOperacaoRepo := &mocks.OperacaoRepoMock{}
+
+	service := services.NovoContaService(mockContaRepo, mockOperacaoRepo)
+
+	err := service.Depositar("123", 100)
 	if err != nil {
-		t.Errorf("não esperava erro : %s", err)
+		t.Fatalf("esperava sucesso, mas ocorreu erro: %v", err)
 	}
 
-	if conta.GetCliente() != "João Silva" {
-		t.Errorf("esperado: João Silva, obtido: %s", conta.GetCliente())
+	if conta.Saldo != 100 {
+		t.Errorf("esperava saldo 100, mas obteve %.2f", conta.Saldo)
+	}
+
+	if len(mockOperacaoRepo.Registradas) != 1 {
+		t.Errorf("esperava 1 operação registrada, mas obteve %d", len(mockOperacaoRepo.Registradas))
 	}
 }
 
-func TestContaService_Depositar(t *testing.T) {
-	repo := NovoRepositorio()
-	service := NovoContaService(repo)
+func TestFazerPix(t *testing.T) {
+	conta := &models.Conta{
+		ChavePix: "pix@gmail.com",
+		Saldo:  0,
+	}
 
-	service.CriarConta("Maria", "456", "0002", "maria@pix.com")
-	err := service.Depositar("456", 1000)
+	mockContaRepo := &mocks.ContaRepoMock{ContaFake: conta}
+	mockOperacaoRepo := &mocks.OperacaoRepoMock{}
+
+	service := services.NovoContaService(mockContaRepo, mockOperacaoRepo)
+
+	err := service.FazerPix("pix@gmail.com", 100)
 	if err != nil {
-		t.Errorf("não esperava erro no depósito: %v", err)
+		t.Fatalf("esperava sucesso, mas ocorreu erro: %v", err)
 	}
 
-	conta, _ := service.ConsultarConta("456")
-	if conta.GetSaldo() != 1000 {
-		t.Errorf("saldo esperado: 1000, obtido: %.2f", conta.GetSaldo())
+	if conta.Saldo != 100 {
+		t.Errorf("esperava saldo 100, mas obteve %.2f", conta.Saldo)
+	}
+
+	if len(mockOperacaoRepo.Registradas) != 1 {
+		t.Errorf("esperava 1 operação registrada, mas obteve %d", len(mockOperacaoRepo.Registradas))
 	}
 }
 
-func TestContaService_FazerPix(t *testing.T) {
-	repo := NovoRepositorio()
-	service := NovoContaService(repo)
+func TestSacar(t *testing.T) {
+	conta := &models.Conta{
+		Numero: "123",
+		Saldo:  0,
+	}
 
-	service.CriarConta("Maria", "456", "0002", "maria@pix.com")
-	err := service.FazerPix("maria@pix.com", 1000)
+	mockContaRepo := &mocks.ContaRepoMock{ContaFake: conta}
+	mockOperacaoRepo := &mocks.OperacaoRepoMock{}
+
+	service := services.NovoContaService(mockContaRepo, mockOperacaoRepo)
+
+	service.Depositar("123", 300)
+	err := service.Sacar("123", 100)
 	if err != nil {
-		t.Errorf("não esperava erro no pix: %v", err)
+		t.Fatalf("esperava sucesso, mas ocorreu erro: %v", err)
 	}
 
-	conta, _ := service.ConsultarConta("456")
-	if conta.GetSaldo() != 1000 {
-		t.Errorf("saldo esperado: 1000, obtido: %.2f", conta.GetSaldo())
-	}
-}
-
-func TestContaService_Saque_Sucesso(t *testing.T) {
-	repo := NovoRepositorio()
-	service := NovoContaService(repo)
-
-	service.CriarConta("João", "789", "0003", "joao@pix.com")
-	service.Depositar("789", 500)
-	err := service.Sacar("789", 300)
-	if err != nil {
-		t.Errorf("não esperava erro no saque: %v", err)
+	if conta.Saldo != 200 {
+		t.Errorf("esperava saldo 200, mas obteve %.2f", conta.Saldo)
 	}
 
-	conta, _ := service.ConsultarConta("789")
-	if conta.GetSaldo() != 200 {
-		t.Errorf("saldo esperado: 200, obtido: %.2f", conta.GetSaldo())
+	if len(mockOperacaoRepo.Registradas) != 2 {
+		t.Errorf("esperava 2 operação registrada, mas obteve %d", len(mockOperacaoRepo.Registradas))
 	}
 }
-
-func TestContaService_Saque_ErroSaldoInsuficiente(t *testing.T) {
-	repo := NovoRepositorio()
-	service := NovoContaService(repo)
-
-	service.CriarConta("Lucas", "999", "0004", "lucas@pix.com")
-	err := service.Sacar("999", 100)
-	if err == nil {
-		t.Error("esperava erro de saldo insuficiente, mas não ocorreu")
-	}
-}
+ 

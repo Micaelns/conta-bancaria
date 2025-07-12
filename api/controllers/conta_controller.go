@@ -17,7 +17,7 @@ type NovaContaRequest struct {
 }
 
 type OperacaoRequest struct {
-	Valor float64 `json:"valor" binding:"required,gt=0"`
+	Valor float64 `json:"valor" binding:"required"`
 }
 
 type ContaController struct {

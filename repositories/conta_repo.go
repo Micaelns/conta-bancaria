@@ -11,6 +11,13 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+type ContaRepositoryInterface interface {
+	BuscarConta(numero string) (*models.Conta, error)
+	BuscarContaPix(chavePix string) (*models.Conta, error)
+	Adicionar(conta *models.Conta) error
+	AtualizarSaldo(numero string, novoSaldo float64) error
+}
+
 type ContaRepository struct {
 	col *mongo.Collection
 }

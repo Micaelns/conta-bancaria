@@ -4,17 +4,16 @@ import (
 	"conta-bancaria/models"
 	"conta-bancaria/repositories"
 	"errors"
-	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
 )
 
 type ContaService struct {
-	contaRepo *repositories.ContaRepository
-	operacaoRepo *repositories.OperacaoRepository
+	contaRepo 	 repositories.ContaRepositoryInterface
+	operacaoRepo repositories.OperacaoRepositoryInterface
 }
 
-func NovoContaService(contaRepo *repositories.ContaRepository, operacaoRepo *repositories.OperacaoRepository) *ContaService {
+func NovoContaService(contaRepo repositories.ContaRepositoryInterface, operacaoRepo repositories.OperacaoRepositoryInterface) *ContaService {
 	return &ContaService{
 		contaRepo: contaRepo,
 		operacaoRepo: operacaoRepo,
@@ -53,7 +52,7 @@ func (s *ContaService) Depositar(numeroConta string, valor float64) error {
 	operacao := c.Depositar(valor)
 	s.operacaoRepo.Registrar(operacao)
 	if operacao.Erro != "" {
-		return fmt.Errorf(operacao.Erro)
+		return errors.New(operacao.Erro)
 	}
 	s.contaRepo.AtualizarSaldo(numeroConta, c.Saldo)
 	return nil
@@ -67,7 +66,7 @@ func (s *ContaService) FazerPix(chavePix string, valor float64) error {
 	operacao := c.FazerPix(valor)
 	s.operacaoRepo.Registrar(operacao)
 	if operacao.Erro != "" {
-		return fmt.Errorf(operacao.Erro)
+		return errors.New(operacao.Erro)
 	}
 	s.contaRepo.AtualizarSaldo(c.Numero, c.Saldo)
 	return nil
@@ -81,7 +80,7 @@ func (s *ContaService) Sacar(numeroConta string, valor float64) error {
 	operacao := c.Sacar(valor)
 	s.operacaoRepo.Registrar(operacao)
 	if operacao.Erro != "" {
-		return fmt.Errorf(operacao.Erro)
+		return errors.New(operacao.Erro)
 	}
 	s.contaRepo.AtualizarSaldo(c.Numero, c.Saldo)
 	return nil

@@ -11,6 +11,11 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+type OperacaoRepositoryInterface interface {
+	Registrar(op *models.Operacao) error
+	ListaFiltrada(filter bson.M) ([]models.Operacao, error)
+}
+
 type OperacaoRepository struct {
 	col *mongo.Collection
 }
