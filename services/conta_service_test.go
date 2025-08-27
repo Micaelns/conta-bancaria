@@ -7,79 +7,166 @@ import (
 	"testing"
 )
 
-func TestDepositar(t *testing.T) {
-	conta := &models.Conta{
-		Numero: "123",
-		Saldo:  0,
-	}
+func TestContaServiceDepositar(t *testing.T) {
+	t.Run("Sucesso", func(t *testing.T) {
+		conta := &models.Conta{Numero: "123", Saldo: 0}
+		mockContaRepo := &mocks.ContaRepoMock{ContaFake: conta}
+		mockOperacaoRepo := &mocks.OperacaoRepoMock{}
+		service := services.NovoContaService(mockContaRepo, mockOperacaoRepo)
 
-	mockContaRepo := &mocks.ContaRepoMock{ContaFake: conta}
-	mockOperacaoRepo := &mocks.OperacaoRepoMock{}
+		err := service.Depositar("123", 100)
+		if err != nil {
+			t.Fatalf("esperava sucesso, mas ocorreu erro: %v", err)
+		}
 
-	service := services.NovoContaService(mockContaRepo, mockOperacaoRepo)
+		if conta.Saldo != 100 {
+			t.Errorf("esperava saldo 100, mas obteve %.2f", conta.Saldo)
+		}
 
-	err := service.Depositar("123", 100)
-	if err != nil {
-		t.Fatalf("esperava sucesso, mas ocorreu erro: %v", err)
-	}
+		if len(mockOperacaoRepo.Registradas) != 1 {
+			t.Errorf("esperava 1 operação registrada, mas obteve %d", len(mockOperacaoRepo.Registradas))
+		}
+	})
 
-	if conta.Saldo != 100 {
-		t.Errorf("esperava saldo 100, mas obteve %.2f", conta.Saldo)
-	}
+	t.Run("Conta inexistente", func(t *testing.T) {
+		mockContaRepo := &mocks.ContaRepoMock{ContaFake: nil} // Simula conta não encontrada
+		mockOperacaoRepo := &mocks.OperacaoRepoMock{}
+		service := services.NovoContaService(mockContaRepo, mockOperacaoRepo)
 
-	if len(mockOperacaoRepo.Registradas) != 1 {
-		t.Errorf("esperava 1 operação registrada, mas obteve %d", len(mockOperacaoRepo.Registradas))
-	}
+		err := service.Depositar("999", 50)
+		if err == nil {
+			t.Fatal("esperava erro ao depositar em conta inexistente, mas não ocorreu")
+		}
+	})
+
+	t.Run("Valor inválido", func(t *testing.T) {
+		conta := &models.Conta{Numero: "123", Saldo: 0}
+		mockContaRepo := &mocks.ContaRepoMock{ContaFake: conta}
+		mockOperacaoRepo := &mocks.OperacaoRepoMock{}
+		service := services.NovoContaService(mockContaRepo, mockOperacaoRepo)
+
+		err := service.Depositar("123", -10)
+		if err == nil {
+			t.Fatal("esperava erro ao realizar pix com valor inválido, mas não ocorreu")
+		}
+
+		if conta.Saldo != 0 {
+			t.Errorf("saldo não deveria ter mudado, mas obteve %.2f", conta.Saldo)
+		}
+	})
 }
 
-func TestFazerPix(t *testing.T) {
-	conta := &models.Conta{
-		ChavePix: "pix@gmail.com",
-		Saldo:  0,
-	}
+func TestContaServiceFazerPix(t *testing.T) {
+	t.Run("Sucesso", func(t *testing.T) {
+		conta := &models.Conta{ChavePix: "pix@gmail.com", Saldo: 0}
+		mockContaRepo := &mocks.ContaRepoMock{ContaFake: conta}
+		mockOperacaoRepo := &mocks.OperacaoRepoMock{}
+		service := services.NovoContaService(mockContaRepo, mockOperacaoRepo)
 
-	mockContaRepo := &mocks.ContaRepoMock{ContaFake: conta}
-	mockOperacaoRepo := &mocks.OperacaoRepoMock{}
+		err := service.FazerPix("pix@gmail.com", 100)
+		if err != nil {
+			t.Fatalf("esperava sucesso, mas ocorreu erro: %v", err)
+		}
 
-	service := services.NovoContaService(mockContaRepo, mockOperacaoRepo)
+		if conta.Saldo != 100 {
+			t.Errorf("esperava saldo 100, mas obteve %.2f", conta.Saldo)
+		}
 
-	err := service.FazerPix("pix@gmail.com", 100)
-	if err != nil {
-		t.Fatalf("esperava sucesso, mas ocorreu erro: %v", err)
-	}
+		if len(mockOperacaoRepo.Registradas) != 1 {
+			t.Errorf("esperava 1 operação registrada, mas obteve %d", len(mockOperacaoRepo.Registradas))
+		}
+	})
 
-	if conta.Saldo != 100 {
-		t.Errorf("esperava saldo 100, mas obteve %.2f", conta.Saldo)
-	}
+	t.Run("Conta inexistente", func(t *testing.T) {
+		mockContaRepo := &mocks.ContaRepoMock{ContaFake: nil} // Simula conta não encontrada
+		mockOperacaoRepo := &mocks.OperacaoRepoMock{}
+		service := services.NovoContaService(mockContaRepo, mockOperacaoRepo)
 
-	if len(mockOperacaoRepo.Registradas) != 1 {
-		t.Errorf("esperava 1 operação registrada, mas obteve %d", len(mockOperacaoRepo.Registradas))
-	}
+		err := service.FazerPix("pix@999", 50)
+		if err == nil {
+			t.Fatal("esperava erro ao depositar em conta inexistente, mas não ocorreu")
+		}
+	})
+
+	t.Run("Valor inválido", func(t *testing.T) {
+		conta := &models.Conta{ChavePix: "pix@gmail.com", Saldo: 0}
+		mockContaRepo := &mocks.ContaRepoMock{ContaFake: conta}
+		mockOperacaoRepo := &mocks.OperacaoRepoMock{}
+		service := services.NovoContaService(mockContaRepo, mockOperacaoRepo)
+
+		err := service.FazerPix("pix@gmail.com", -10)
+		if err == nil {
+			t.Fatal("esperava erro ao depositar valor inválido, mas não ocorreu")
+		}
+
+		if conta.Saldo != 0 {
+			t.Errorf("saldo não deveria ter mudado, mas obteve %.2f", conta.Saldo)
+		}
+	})
 }
 
-func TestSacar(t *testing.T) {
-	conta := &models.Conta{
-		Numero: "123",
-		Saldo:  0,
-	}
+func TestContaServiceSacar(t *testing.T) {
+	t.Run("Sucesso", func(t *testing.T) {
+		conta := &models.Conta{Numero: "123", Saldo: 200}
+		mockContaRepo := &mocks.ContaRepoMock{ContaFake: conta}
+		mockOperacaoRepo := &mocks.OperacaoRepoMock{}
+		service := services.NovoContaService(mockContaRepo, mockOperacaoRepo)
 
-	mockContaRepo := &mocks.ContaRepoMock{ContaFake: conta}
-	mockOperacaoRepo := &mocks.OperacaoRepoMock{}
+		err := service.Sacar("123", 100)
+		if err != nil {
+			t.Fatalf("esperava sucesso, mas ocorreu erro: %v", err)
+		}
 
-	service := services.NovoContaService(mockContaRepo, mockOperacaoRepo)
+		if conta.Saldo != 100 {
+			t.Errorf("esperava saldo 100, mas obteve %.2f", conta.Saldo)
+		}
 
-	service.Depositar("123", 300)
-	err := service.Sacar("123", 100)
-	if err != nil {
-		t.Fatalf("esperava sucesso, mas ocorreu erro: %v", err)
-	}
+		if len(mockOperacaoRepo.Registradas) != 1 {
+			t.Errorf("esperava 1 operação registrada, mas obteve %d", len(mockOperacaoRepo.Registradas))
+		}
+	})
 
-	if conta.Saldo != 200 {
-		t.Errorf("esperava saldo 200, mas obteve %.2f", conta.Saldo)
-	}
+	t.Run("Conta inexistente", func(t *testing.T) {
+		mockContaRepo := &mocks.ContaRepoMock{ContaFake: nil} // Simula conta não encontrada
+		mockOperacaoRepo := &mocks.OperacaoRepoMock{}
+		service := services.NovoContaService(mockContaRepo, mockOperacaoRepo)
 
-	if len(mockOperacaoRepo.Registradas) != 2 {
-		t.Errorf("esperava 2 operação registrada, mas obteve %d", len(mockOperacaoRepo.Registradas))
-	}
+		err := service.Sacar("999", 50)
+		if err == nil {
+			t.Fatal("esperava erro ao sacar em conta inexistente, mas não ocorreu")
+		}
+	})
+
+	t.Run("Saldo insuficiente", func(t *testing.T) {
+		conta := &models.Conta{Numero: "123", Saldo: 50}
+		mockContaRepo := &mocks.ContaRepoMock{ContaFake: conta}
+		mockOperacaoRepo := &mocks.OperacaoRepoMock{}
+		service := services.NovoContaService(mockContaRepo, mockOperacaoRepo)
+
+		err := service.Sacar("123", 100)
+		if err == nil {
+			t.Fatal("esperava erro ao sacar valor insuficiente do saldo, mas não ocorreu")
+		}
+
+		if conta.Saldo != 50 {
+			t.Errorf("saldo não deveria ter mudado, mas obteve %.2f", conta.Saldo)
+		}
+	})
+
+	t.Run("Valor inválido", func(t *testing.T) {
+		conta := &models.Conta{Numero: "123", Saldo: 50}
+		mockContaRepo := &mocks.ContaRepoMock{ContaFake: conta}
+		mockOperacaoRepo := &mocks.OperacaoRepoMock{}
+		service := services.NovoContaService(mockContaRepo, mockOperacaoRepo)
+
+		err := service.Sacar("123", -10)
+		if err == nil {
+			t.Fatal("esperava erro ao sacar valor inválido, mas não ocorreu")
+		}
+
+		if conta.Saldo != 50 {
+			t.Errorf("saldo não deveria ter mudado, mas obteve %.2f", conta.Saldo)
+		}
+	})
 }
  
