@@ -37,7 +37,7 @@ func (c *Conta) FazerPix(valor float64) *Operacao {
 		Timestamp:   time.Now(),
 	}
 	if valor <= 0 {
-		op.Erro = fmt.Sprintf(" R$ %.2f (valor inválido)",c.Saldo)
+		op.Erro = fmt.Sprintf(" R$ %.2f (valor inválido)",valor)
 		return op
 	}
 	c.Saldo += valor
@@ -52,7 +52,12 @@ func (c *Conta) Sacar(valor float64) *Operacao {
 		Timestamp:   time.Now(),
 	}
 
-	if valor > c.Saldo {
+	if valor < 0 || valor > c.Saldo {
+		op.Erro = fmt.Sprintf(" R$ %.2f (valor inválido)",valor)
+		return op
+	}
+
+	if valor < 0 || valor > c.Saldo {
 		op.Erro = fmt.Sprintf(" R$ %.2f (saldo insuficiente)",c.Saldo)
 		return op
 	}

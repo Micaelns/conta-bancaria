@@ -2,6 +2,7 @@ package mocks
 
 import (
 	"conta-bancaria/models"
+	"errors"
 )
 
 type ContaRepoMock struct {
@@ -9,10 +10,16 @@ type ContaRepoMock struct {
 }
 
 func (m *ContaRepoMock) BuscarConta(numero string) (*models.Conta, error) {
+	if m.ContaFake == nil {
+		return nil, errors.New("conta não existe")
+	}
 	return m.ContaFake, nil
 }
 
 func (m *ContaRepoMock) BuscarContaPix(chavePix string) (*models.Conta, error) {
+	if m.ContaFake == nil {
+		return nil, errors.New("conta não existe")
+	}
 	return m.ContaFake, nil
 }
 
